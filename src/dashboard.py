@@ -7,6 +7,8 @@ from src.queries import get_sales, get_purchases
 def show_dashboard():
 
     company_id = st.session_state.company_id
+    company_name = st.session_state.company_name
+    company_rut = st.session_state.company_rut
 
     sales = get_sales(company_id)
     purchases = get_purchases(company_id)
@@ -18,42 +20,73 @@ def show_dashboard():
         st.warning("No existen datos financieros disponibles.")
         return
 
+    st.title(company_name)
+    st.markdown(f"**RUT:** {company_rut}")
+
     # --------------------------------------------------------
     # Period
     # --------------------------------------------------------
 
-    periods = sorted(
-        set(df_sales["periodo"].tolist())
-        | set(df_purchases["periodo"].tolist())
+    df_sales["period_date"] = pd.to_datetime(
+        df_sales["periodo"],
+        format="%Y%m",
     )
 
-    years = sorted(
-        {period[:4] for period in periods},
-        reverse=True,
+    df_purchases["period_date"] = pd.to_datetime(
+        df_purchases["periodo"],
+        format="%Y%m",
     )
 
-    selected_year = st.selectbox(
-        "Año",
-        years,
+    latest_date = max(
+        df_sales["period_date"].max(),
+        df_purchases["period_date"].max(),
     )
 
-    sales_year = df_sales[
-        df_sales["periodo"].str.startswith(selected_year)
+    period_options = {
+        "Últimos 6 meses": 6,
+        "Últimos 12 meses": 12,
+        "Últimos 18 meses": 18,
+        "Últimos 24 meses": 24,
+    }
+
+    selected_period = st.selectbox(
+        "Período",
+        list(period_options.keys()),
+        index=1,
+    )
+
+    months = period_options[selected_period]
+
+    start_date = latest_date - pd.DateOffset(
+        months=months - 1
+    )
+
+    sales_period = df_sales[
+        df_sales["period_date"].between(
+            start_date,
+            latest_date,
+        )
     ].copy()
 
-    purchases_year = df_purchases[
-        df_purchases["periodo"].str.startswith(selected_year)
+    purchases_period = df_purchases[
+        df_purchases["period_date"].between(
+            start_date,
+            latest_date,
+        )
     ].copy()
 
     # --------------------------------------------------------
     # KPI
     # --------------------------------------------------------
 
-    total_sales = sales_year["monto_neto"].sum()
-    total_purchases = purchases_year["monto_neto"].sum()
+
+    total_sales = sales_period["monto_neto"].sum()
+    total_purchases = purchases_period["monto_neto"].sum()
     difference = total_sales - total_purchases
 
-    st.subheader(f"Resumen Financiero {selected_year}")
+    st.subheader(
+        f"Resumen Financiero — {selected_period}"
+    )
 
     col1, col2, col3 = st.columns(3)
 
@@ -76,14 +109,16 @@ def show_dashboard():
     # Monthly chart
     # --------------------------------------------------------
 
+
+
     monthly_sales = (
-        sales_year
+        sales_period
         .groupby("periodo")["monto_neto"]
         .sum()
     )
 
     monthly_purchases = (
-        purchases_year
+        purchases_period
         .groupby("periodo")["monto_neto"]
         .sum()
     )
@@ -93,7 +128,10 @@ def show_dashboard():
         "Compras": monthly_purchases,
     }).fillna(0)
 
-    monthly.index = monthly.index.str[-2:]
+    monthly.index = pd.to_datetime(
+        monthly.index,
+        format="%Y%m",
+    ).strftime("%b %y")
 
     st.subheader("Ventas vs Compras")
 
