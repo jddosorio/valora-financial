@@ -134,7 +134,7 @@ def show_dashboard():
 
     st.subheader("Ventas vs Compras")
 
-    st.line_chart(
+    st.bar_chart(
         monthly / 1_000_000,
         y_label="Millones CLP",
         use_container_width=True,
