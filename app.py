@@ -40,17 +40,18 @@ if not st.session_state.authenticated:
 
         email = st.text_input(
             "Correo electrónico",
-            placeholder="usuario@empresa.cl",
+            value="user@acme.cl"
         )
 
         password = st.text_input(
             "Contraseña",
-            type="password",
+            value="123456",
+            type="password"
         )
 
         submitted = st.form_submit_button(
             "INICIAR SESIÓN",
-            use_container_width=True,
+            use_container_width=True
         )
 
     if submitted:
