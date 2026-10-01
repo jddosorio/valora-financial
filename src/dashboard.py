@@ -109,8 +109,6 @@ def show_dashboard():
     # Monthly chart
     # --------------------------------------------------------
 
-
-
     monthly_sales = (
         sales_period
         .groupby("periodo")["monto_neto"]
@@ -128,6 +126,7 @@ def show_dashboard():
         "Compras": monthly_purchases,
     }).fillna(0)
 
+    # Show month and year on X axis
     monthly.index = pd.to_datetime(
         monthly.index,
         format="%Y%m",
@@ -138,4 +137,5 @@ def show_dashboard():
     st.line_chart(
         monthly / 1_000_000,
         y_label="Millones CLP",
+        use_container_width=True,
     )
